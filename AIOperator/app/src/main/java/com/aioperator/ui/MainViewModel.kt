@@ -119,7 +119,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         if (userText.isBlank()) return
         val currentKey = apiKey.value
         if (currentKey.isBlank()) {
-            _messages.update { it + UiMessage("System", "Please set your Anthropic API Key in Settings.") }
+            _messages.update { it + UiMessage("System", "Please set your Google Gemini API Key in Settings.") }
             speakOut("कृपया सेटिंग्स में एपीआई की दर्ज करें")
             return
         }
@@ -130,7 +130,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         viewModelScope.launch {
             try {
                 val provider = AnthropicProvider(currentKey)
-                val screenState = AIOperatorAccessibilityService.instance?.captureCurrentScreen()
+                // ScreenState को String? में बदलने के लिए ?.toString() लगाया गया
+                val screenState = AIOperatorAccessibilityService.instance?.captureCurrentScreen()?.toString()
                 val history = _messages.value.takeLast(10).map {
                     ChatMessage(if (it.sender == "User") "user" else "assistant", it.text)
                 }
