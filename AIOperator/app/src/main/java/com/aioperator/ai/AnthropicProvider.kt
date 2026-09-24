@@ -84,8 +84,8 @@ class AnthropicProvider(private val apiKey: String) {
             put("contents", contentsArray)
         }
 
-        // Gemini 1.5 Flash endpoint
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        // Fixed Stable URL Endpoint
+        val url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey"
 
         val requestBody = requestJson.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
@@ -126,7 +126,6 @@ class AnthropicProvider(private val apiKey: String) {
                     val toolName = json.getString("tool")
                     val argsObj = json.optJSONObject("arguments") ?: JSONObject()
                     
-                    // Fixed: Map<String, String> conversion
                     val args = mutableMapOf<String, String>()
                     argsObj.keys().forEach { key ->
                         args[key] = argsObj.get(key).toString()
