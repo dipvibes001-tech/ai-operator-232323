@@ -126,9 +126,11 @@ class AnthropicProvider(private val apiKey: String) {
                     val json = JSONObject(jsonStr)
                     val toolName = json.getString("tool")
                     val argsObj = json.optJSONObject("arguments") ?: JSONObject()
-                    val args = mutableMapOf<String, Any>()
+                    
+                    // Fixed: Map<String, String> conversion
+                    val args = mutableMapOf<String, String>()
                     argsObj.keys().forEach { key ->
-                        args[key] = argsObj.get(key)
+                        args[key] = argsObj.get(key).toString()
                     }
                     toolCalls.add(ToolCall(toolName, args))
                 } catch (e: Exception) {
