@@ -11,7 +11,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-data class ChatMessage(val role: String, val content: String)
 data class AIResponse(val message: String, val toolCalls: List<ToolCall>)
 
 class AnthropicProvider(private val apiKey: String) {
