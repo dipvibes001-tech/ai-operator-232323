@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background Circle -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M54,54m-48,0a48,48 0 1,1 96,0a48,48 0 1,1 -96,0"/>
+
+    <!-- Premium Stylized D -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M38,30 L54,30 C64.5,30 72,37.5 72,54 C72,70.5 64.5,78 54,78 L38,78 Z M46,38 L46,70 L54,70 C60,70 64,64 64,54 C64,44 60,38 54,38 Z"/>
+        
+    <!-- Neon Accent Glow inside D -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M48,42 L53,42 C57,42 60,46 60,54 C60,62 57,66 53,66 L48,66 Z"/>
+</vector>
