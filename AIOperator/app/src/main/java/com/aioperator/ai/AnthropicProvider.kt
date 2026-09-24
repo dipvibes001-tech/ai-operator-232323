@@ -1,134 +1,148 @@
 package com.aioperator.ai
 
-import com.aioperator.model.AIResponse
-import com.aioperator.model.ScreenState
 import com.aioperator.model.ToolCall
-import kotlinx.serialization.json.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-class AnthropicProvider(private val apiKey: String) : AIProvider {
+data class ChatMessage(val role: String, val content: String)
+data class AIResponse(val message: String, val toolCalls: List<ToolCall>)
+
+class AnthropicProvider(private val apiKey: String) {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val json = Json { ignoreUnknownKeys = true }
+    suspend fun generateResponse(
+        userPrompt: String,
+        history: List<ChatMessage>,
+        screenState: String? = null
+    ): AIResponse = withContext(Dispatchers.IO) {
 
-    private val systemPrompt = """
-        You are Zoya, a smart, polite, and helpful female AI assistant for Android phones.
-        You speak in natural, friendly Hindi/Hinglish.
-        Always write a concise, pleasant spoken explanation first (which will be spoken out loud via TTS), 
-        followed by a TOOL_CALL if an action is required.
+        val systemPrompt = """
+            You are Zoya, a smart and polite female AI phone assistant.
+            You help the user operate their Android phone.
+            
+            Available Tools:
+            - open_app(app_name: string)
+            - toggle_torch(state: "on"|"off")
+            - adjust_volume(direction: "up"|"down")
+            - get_battery()
+            - send_whatsapp(phone: string, message: string)
+            - make_call(phone: string)
+            - tap_text(text: string)
+            - type_text(text: string)
+            - scroll(direction: "up"|"down")
+            - press_back()
+            - press_home()
+            - remember_info(key: string, value: string)
+            - recall_info(query: string)
 
-        Available tools:
-        - open_app (arguments: {"app_name": "string"})
-        - tap_text (arguments: {"text": "string"})
-        - type_text (arguments: {"text": "string"})
-        - press_back
-        - press_home
-        - scroll (arguments: {"direction": "up" | "down"})
-        - read_screen
-        - wait (arguments: {"milliseconds": "1000"})
-        - toggle_torch (arguments: {"state": "on" | "off"})
-        - adjust_volume (arguments: {"direction": "up" | "down"})
-        - get_battery
-        - send_whatsapp (arguments: {"phone": "string optional", "message": "string"})
-        - make_call (arguments: {"phone": "string"})
-        - remember_info (arguments: {"key": "string", "value": "string"})
-        - recall_info (arguments: {"query": "string"})
+            If the user asks to perform an action, reply politely in Hindi and output the tool call on a new line formatted exactly like:
+            TOOL_CALL:{"tool":"tool_name","arguments":{"key":"value"}}
+            
+            Example:
+            हाँ जी दीप, मैं यूट्यूब खोल रही हूँ।
+            TOOL_CALL:{"tool":"open_app","arguments":{"app_name":"YouTube"}}
+        """.trimIndent()
 
-        Format:
-        Explanation here (friendly Hindi/Hinglish).
-        TOOL_CALL:{"tool":"open_app","arguments":{"app_name":"YouTube"}}
-    """.trimIndent()
+        val contentsArray = JSONArray()
 
-    override suspend fun generateResponse(
-        userMessage: String,
-        conversationHistory: List<ChatMessage>,
-        currentScreen: ScreenState?
-    ): AIResponse {
+        // System Instruction
+        val systemPart = JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", "System Instruction: $systemPrompt")))
+        contentsArray.put(systemPart)
+        val systemModelPart = JSONObject().put("role", "model").put("parts", JSONArray().put(JSONObject().put("text", "Understood. I will act as Zoya and execute tools using the exact TOOL_CALL format.")))
+        contentsArray.put(systemModelPart)
 
-        val screenContext = currentScreen?.let { screen ->
-            buildString {
-                append("\n\nCurrent screen — App: ${screen.appPackage ?: "unknown"}")
-                append("\nVisible elements:")
-                screen.elements.take(15).forEach { e ->
-                    append("\n  • \"${e.text}\"")
-                }
-            }
-        } ?: ""
-
-        val messages = buildJsonArray {
-            conversationHistory.forEach { msg ->
-                addJsonObject {
-                    put("role", msg.role)
-                    put("content", msg.content)
-                }
-            }
-            addJsonObject {
-                put("role", "user")
-                put("content", userMessage + screenContext)
-            }
+        // Previous history
+        for (msg in history.takeLast(6)) {
+            val role = if (msg.role == "user") "user" else "model"
+            contentsArray.put(
+                JSONObject().put("role", role).put("parts", JSONArray().put(JSONObject().put("text", msg.content)))
+            )
         }
 
-        val requestBody = buildJsonObject {
-            put("model", "claude-3-5-sonnet-20241022")
-            put("max_tokens", 1024)
-            put("system", systemPrompt)
-            put("messages", messages)
-        }.toString()
+        // Current message with screen state
+        val promptWithContext = if (!screenState.isNullOrBlank()) {
+            "Current Screen State:\n$screenState\n\nUser: $userPrompt"
+        } else {
+            userPrompt
+        }
 
+        contentsArray.put(
+            JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", promptWithContext)))
+        )
+
+        val requestJson = JSONObject().apply {
+            put("contents", contentsArray)
+        }
+
+        // Gemini 1.5 Flash endpoint
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+
+        val requestBody = requestJson.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", apiKey)
-            .addHeader("anthropic-version", "2023-06-01")
-            .addHeader("content-type", "application/json")
-            .post(requestBody.toRequestBody("application/json".toMediaType()))
+            .url(url)
+            .post(requestBody)
             .build()
 
-        return try {
-            val response = client.newCall(request).execute()
-            val body = response.body?.string() ?: return AIResponse(message = "Empty response")
-            if (!response.isSuccessful) return AIResponse(message = "API error ${response.code}: $body")
-            parseResponse(body)
-        } catch (e: Exception) {
-            AIResponse(message = "Network error: ${e.message}")
-        }
-    }
+        val response = client.newCall(request).execute()
+        val responseBody = response.body?.string() ?: ""
 
-    private fun parseResponse(raw: String): AIResponse {
-        return try {
-            val root = json.parseToJsonElement(raw).jsonObject
-            val text = root["content"]?.jsonArray
-                ?.firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "text" }
-                ?.jsonObject?.get("text")?.jsonPrimitive?.content ?: return AIResponse(message = "No response")
-
-            val lines = text.lines()
-            val toolIndex = lines.indexOfFirst { it.trim().startsWith("TOOL_CALL:") }
-
-            if (toolIndex < 0) {
-                return AIResponse(message = text)
+        if (!response.isSuccessful) {
+            val errorMsg = try {
+                JSONObject(responseBody).getJSONObject("error").getString("message")
+            } catch (e: Exception) {
+                responseBody
             }
-
-            val message = lines.take(toolIndex).joinToString("\n").trim()
-            val toolJson = lines[toolIndex].trim().removePrefix("TOOL_CALL:").trim()
-            val toolObj = json.parseToJsonElement(toolJson).jsonObject
-
-            val toolCall = ToolCall(
-                tool = toolObj["tool"]?.jsonPrimitive?.content ?: "",
-                arguments = toolObj["arguments"]?.jsonObject?.mapValues { it.value.jsonPrimitive.content } ?: emptyMap()
-            )
-
-            AIResponse(message = message, toolCalls = listOf(toolCall))
-        } catch (e: Exception) {
-            AIResponse(message = "Parse error: ${e.message}")
+            throw Exception("Gemini Error (${response.code}): $errorMsg")
         }
+
+        val jsonResponse = JSONObject(responseBody)
+        val candidates = jsonResponse.optJSONArray("candidates")
+        val contentObj = candidates?.optJSONObject(0)?.optJSONObject("content")
+        val parts = contentObj?.optJSONArray("parts")
+        val rawReply = parts?.optJSONObject(0)?.optString("text") ?: "माफ़ कीजिए, कोई जवाब नहीं मिला।"
+
+        parseResponse(rawReply)
     }
 
-    override suspend fun summarizeForMemory(text: String): String = text
+    private fun parseResponse(rawReply: String): AIResponse {
+        val toolCalls = mutableListOf<ToolCall>()
+        val cleanLines = mutableListOf<String>()
+
+        rawReply.lines().forEach { line ->
+            if (line.trim().startsWith("TOOL_CALL:")) {
+                try {
+                    val jsonStr = line.trim().removePrefix("TOOL_CALL:").trim()
+                    val json = JSONObject(jsonStr)
+                    val toolName = json.getString("tool")
+                    val argsObj = json.optJSONObject("arguments") ?: JSONObject()
+                    val args = mutableMapOf<String, Any>()
+                    argsObj.keys().forEach { key ->
+                        args[key] = argsObj.get(key)
+                    }
+                    toolCalls.add(ToolCall(toolName, args))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } else {
+                cleanLines.add(line)
+            }
+        }
+
+        val displayMessage = cleanLines.joinToString("\n").trim()
+        return AIResponse(
+            message = if (displayMessage.isBlank()) "काम कर दिया है।" else displayMessage,
+            toolCalls = toolCalls
+        )
+    }
 }
