@@ -49,8 +49,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
             OutlinedTextField(
                 value = apiKeyInput,
                 onValueChange = { apiKeyInput = it },
-                label = { Text("Anthropic API Key") },
-                placeholder = { Text("sk-ant-...") },
+                label = { Text("Google Gemini API Key") },
+                placeholder = { Text("AIzaSy...") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -61,7 +61,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     if (apiKeyInput.isNotBlank()) {
                         viewModel.saveApiKey(apiKeyInput.trim())
                         scope.launch {
-                            snackbarHostState.showSnackbar("API Key सफलतापूर्वक सेव हो गई!")
+                            snackbarHostState.showSnackbar("Gemini API Key सफलतापूर्वक सेव हो गई!")
                         }
                     } else {
                         scope.launch {
