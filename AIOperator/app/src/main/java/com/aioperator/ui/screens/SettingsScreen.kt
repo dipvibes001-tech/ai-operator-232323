@@ -46,11 +46,12 @@ fun SettingsScreen(viewModel: MainViewModel) {
             Text("AI Settings", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Universal AI API Key Input
             OutlinedTextField(
                 value = apiKeyInput,
                 onValueChange = { apiKeyInput = it },
-                label = { Text("Google Gemini API Key") },
-                placeholder = { Text("AIzaSy...") },
+                label = { Text("Universal AI API Key") },
+                placeholder = { Text("Gemini / Claude / OpenAI / Groq Key") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -61,7 +62,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     if (apiKeyInput.isNotBlank()) {
                         viewModel.saveApiKey(apiKeyInput.trim())
                         scope.launch {
-                            snackbarHostState.showSnackbar("Gemini API Key सफलतापूर्वक सेव हो गई!")
+                            snackbarHostState.showSnackbar("API Key सफलतापूर्वक सेव हो गई!")
                         }
                     } else {
                         scope.launch {
