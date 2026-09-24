@@ -6,9 +6,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.aioperator.model.ExecutionLog
 
-@Database(entities = [ExecutionLog::class], version = 1, exportSchema = false)
+@Database(entities = [ExecutionLog::class, MemoryEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun executionLogDao(): ExecutionLogDao
+    abstract fun memoryDao(): MemoryDao
 
     companion object {
         @Volatile
@@ -20,7 +21,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "ai_operator_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }
