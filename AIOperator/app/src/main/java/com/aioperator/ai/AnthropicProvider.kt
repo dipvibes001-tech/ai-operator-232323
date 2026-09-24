@@ -84,8 +84,8 @@ class AnthropicProvider(private val apiKey: String) {
             put("contents", contentsArray)
         }
 
-       // नई लाइन (Stable v1 API with gemini-1.5-flash):
-val url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        // Updated Gemini API URL (Stable v1)
+        val url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey"
 
         val requestBody = requestJson.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
