@@ -12,7 +12,7 @@ interface MemoryDao {
 
     @Query(
         """
-        SELECT * FROM memories
+        SELECT * FROM zoya_memories
         WHERE :query = ''
            OR `key` LIKE '%' || :query || '%'
            OR content LIKE '%' || :query || '%'
