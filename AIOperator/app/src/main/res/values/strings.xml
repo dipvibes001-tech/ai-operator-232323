@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">AI Operator</string>
-    <string name="accessibility_service_description">AI Operator uses this service to interact with your screen and automate actions on your instruction.</string>
+    <string name="app_name">Zoya AI</string>
+    <string name="accessibility_service_description">Zoya AI uses this service to automate screen tasks on your voice command.</string>
 </resources>
