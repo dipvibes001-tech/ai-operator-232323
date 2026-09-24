@@ -92,7 +92,6 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
     private fun setupFloatingView() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        // Stylish Circular Bubble with Gradient & "D"
         val bubble = TextView(this).apply {
             text = "D"
             setTextColor(Color.WHITE)
@@ -206,7 +205,6 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
     private fun handleHeardSpeech(text: String) {
         val lower = text.lowercase()
 
-        // "हे जोया", "Hey Zoya", "हे दीप", "Hey Deep" दोनों को डिटेक्ट करेगा
         if (!isListeningForCommand && (lower.contains("zoya") || lower.contains("जोया") || 
             lower.contains("deep") || lower.contains("दीप"))) {
             activateZoya()
@@ -230,7 +228,8 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
 
             try {
                 val provider = AnthropicProvider(apiKey)
-                val screenState = AIOperatorAccessibilityService.instance?.captureCurrentScreen()
+                // Type mismatch fix: toString() जोड़ा गया है
+                val screenState = AIOperatorAccessibilityService.instance?.captureCurrentScreen()?.toString()
                 val response = provider.generateResponse(command, listOf(ChatMessage("user", command)), screenState)
 
                 speak(response.message)
