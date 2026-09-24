@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- नेटवर्क और ऑडियो अनुमतियाँ -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- फ्लोटिंग बबल और बैकग्राउंड सर्विस अनुमतियाँ -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- टॉर्च (Flashlight) और कॉलिंग अनुमतियाँ -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -23,6 +31,7 @@
             </intent-filter>
         </activity>
 
+        <!-- स्क्रीन कंट्रोल और ऑटो-टैप सर्विस -->
         <service
             android:name=".service.AIOperatorAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -35,6 +44,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- फ्लोटिंग 'Hey Zoya' बबल सर्विस -->
         <service
             android:name=".service.FloatingBubbleService"
             android:foregroundServiceType="microphone"
