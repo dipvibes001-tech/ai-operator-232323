@@ -4,10 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -16,14 +16,11 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
-import com.aioperator.R
 import com.aioperator.ai.AnthropicProvider
 import com.aioperator.ai.ChatMessage
 import com.aioperator.data.PreferencesRepository
@@ -67,7 +64,7 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun speak(text: String, onDone: (() -> Unit)? = null) {
+    private fun speak(text: String) {
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ZOYA_TTS")
     }
 
@@ -76,7 +73,7 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Zoya Assistant Active",
+                "Zoya AI Floating Assistant",
                 NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
@@ -84,8 +81,8 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
         }
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Zoya Voice Assistant")
-            .setContentText("Listening for 'Hey Zoya'...")
+            .setContentTitle("Zoya AI Assistant Active")
+            .setContentText("Listening for 'Hey Zoya' or 'Hey Deep'...")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .build()
 
@@ -95,12 +92,20 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
     private fun setupFloatingView() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
+        // Stylish Circular Bubble with Gradient & "D"
         val bubble = TextView(this).apply {
-            text = "🎙️ Zoya"
-            setBackgroundColor(Color.parseColor("#6200EE"))
+            text = "D"
             setTextColor(Color.WHITE)
-            setPadding(30, 20, 30, 20)
-            textSize = 14f
+            textSize = 22f
+            gravity = Gravity.CENTER
+
+            val shape = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                colors = intArrayOf(Color.parseColor("#8B5CF6"), Color.parseColor("#38BDF8"))
+                orientation = GradientDrawable.Orientation.TL_BR
+                setStroke(4, Color.parseColor("#FFFFFF"))
+            }
+            background = shape
         }
         floatingView = bubble
 
@@ -111,15 +116,15 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
         }
 
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            150,
+            150,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 50
-            y = 200
+            x = 40
+            y = 250
         }
 
         bubble.setOnTouchListener(object : View.OnTouchListener {
@@ -144,8 +149,7 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
                         return true
                     }
                     MotionEvent.ACTION_UP -> {
-                        if (Math.abs(event.rawX - initialTouchX) < 10 && Math.abs(event.rawY - initialTouchY) < 10) {
-                            // बबल पर टैप करने पर भी चालू हो
+                        if (Math.abs(event.rawX - initialTouchX) < 15 && Math.abs(event.rawY - initialTouchY) < 15) {
                             activateZoya()
                         }
                         return true
@@ -196,14 +200,15 @@ class FloatingBubbleService : Service(), TextToSpeech.OnInitListener {
 
     private fun activateZoya() {
         isListeningForCommand = true
-        speak("हाँ जी, बताइए क्या करूँ?")
+        speak("हाँ जी दीप, बताइए क्या करूँ?")
     }
 
     private fun handleHeardSpeech(text: String) {
         val lower = text.lowercase()
 
-        // वेक-वर्ड "Hey Zoya", "हे जोया", "Zoya" चेक करना
-        if (!isListeningForCommand && (lower.contains("zoya") || lower.contains("जोया") || lower.contains("hey zoya") || lower.contains("हे जोया"))) {
+        // "हे जोया", "Hey Zoya", "हे दीप", "Hey Deep" दोनों को डिटेक्ट करेगा
+        if (!isListeningForCommand && (lower.contains("zoya") || lower.contains("जोया") || 
+            lower.contains("deep") || lower.contains("दीप"))) {
             activateZoya()
             return
         }
